@@ -58,6 +58,25 @@ def warp_rect(polygon):
 
     return w, h, rect
 
+def getRadius(size, iou_thresh=0.7):
+    w, h = size
+    l = (w**2+h**2)**0.5 #diagnoal line
+    # 3 case
+    # detection inside
+    a1 = 4*w*h/(l**2)
+    b1 = -4*w*h/l 
+    c1 = -(1-iou_thresh)*w*h
+    delta1 = b1**2-4*a*c
+    r1 = (-b1+delta1**0.5)/(2*a1)
+
+    # detection outside
+    
+
+    # detection cross
+
+
+    pass
+
 if __name__=='__main__':
     polygon = [[1, 1],
             [3, 2],
