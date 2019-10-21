@@ -63,15 +63,31 @@ class Model():
                 x = tf.layers.max_pooling2d(x, pool_size=2, strides=(2, 2), padding='same')
             return x
 
-    def UPConv(self, inputs, out_dim, kernel_size=3, is_training=True, scope='UPConv'):
+    def UPConv(self, inputs, skip, kernel_size=3, use_batchnorm=True, is_training=True, scope='UPConv'):
         print(inputs.get_shape().as_list())
+        out_dim = skip.get_shape().as_list()[3]
         with tf.variable_scope(scope):
-            base = tf.layers.conv2d_transpose(inputs, out_dim, kernel_size=kernel_size, strides=(2, 2), padding='same')
+            x = tf.layers.conv2d_transpose(inputs, out_dim, kernel_size=kernel_size, strides=(2, 2), padding='same')
+            if use_batchnorm:
+                x = tf.contrib.layers.batch_norm(x, is_training=is_training)
             # x = self.res_unit(base, kernel_size=kernel_size, is_training=is_training)
             # x = self.DWConv_block(base, out_dim, kernel_size, is_training=is_traing)
-            x = self.MBConv6(base, out_dim, is_training=is_training)
+            # x = self.MBConv6(base, out_dim, is_training=is_training)
+            x = tf.add(skip, x)
+            x = tf.nn.relu(x)
             return x
     
-    def heat(self, inputs):
-        pass
-            
+    def heat(self, inputs, out_dim=4, scope='heat'): # tl, tr, br, bl
+        in_dim = inputs.get_shape().as_list()[3]
+        with tf.variable_scope(scope):
+            x = self.conv_block(inputs, in_dim, kernel_size=3, use_batchnorm=False)
+            x = tf.layers.conv2d(x, out_dim, kernel_size=1)
+            return x      
+    
+    def offset(self, inputs, out_dim=2, scope='offset'): # offset
+        in_dim = inputs.get_shape().as_list()[3]
+        with tf.variable_scope(scope):
+            x = self.conv_block(inputs, in_dim, kernel_size=3, use_batchnorm=False)
+            x = tf.layers.conv2d(x, out_dim, kernel_size=1)
+            return x
+       

@@ -82,10 +82,10 @@ def gaussian2D_other(shape, sigma=1):
     # print(h.shape)
     return h
 
-def resize(im, boxes, side=128): # resize image keep aspect ratio, padding
+def resize(im, pts, side=128): # resize image keep aspect ratio, padding
     """
     :param im: origin image
-    :param boxes: boxes correspond tl, tr, br, bl: n_boxes*4*2
+    :param pts:  tl, tr, br, bl: 4*2
     :param side: new image size
     return im and boxes after resize
     """
@@ -93,9 +93,9 @@ def resize(im, boxes, side=128): # resize image keep aspect ratio, padding
     ratio = side / max(im_h, im_w)
     new_size = (int(im_h*ratio), int(im_w*ratio))
     new_im = cv2.resize(im, None, fx=ratio, fy=ratio)
-    boxes = boxes.astype('float32')
-    boxes[:, :, 0] *= ratio
-    boxes[:, :, 1] *= ratio
+    pts = pts.astype('float32')
+    pts[:, 0] *= ratio
+    pts[:, 1] *= ratio
 
     big_image = np.ones([side, side, 3], dtype='float32')*np.mean(new_im)
     padding_y = (side - new_im.shape[0])//2
@@ -104,11 +104,11 @@ def resize(im, boxes, side=128): # resize image keep aspect ratio, padding
         padding_x: padding_x+new_im.shape[1]] = new_im
     big_image = big_image.astype('uint8')
 
-    boxes[:, :, 0] += padding_x
-    boxes[:, :, 1] += padding_y
-    boxes = boxes.astype('int')
+    pts[:, 0] += padding_x
+    pts[:, 1] += padding_y
+    pts = pts.astype('int')
 
-    return big_image, boxes
+    return big_image, pts
     
 def getSizePolygon(pts):
     pts = orderPoints(pts)
