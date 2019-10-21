@@ -47,8 +47,9 @@ def gaussian2D(size, sigma=1):
     center = [h//2, w//2]
     for i in range(h):
         for j in range(w):
-            gaussian[i, j] = 1 / (2*np.pi*sigma**2) * np.exp(-((i-center[0])**2+(j-center[1])**2)/2)
+            gaussian[i, j] = 1 / (2*np.pi*sigma**2) * np.exp(-((i-center[0])**2+(j-center[1])**2)/(2*sigma**2))
     # print(gaussian.shape)
+    gaussian = gaussian / np.max(gaussian)
     return gaussian
 
 def draw_gaussian(heatmap, center, radius):
