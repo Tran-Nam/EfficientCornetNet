@@ -1,9 +1,16 @@
 import os
+import io
 import pandas as pd
 import tensorflow as tf 
 
 from PIL import Image
 from collections import namedtuple, OrderedDict
+
+flags = tf.app.flags
+flags.DEFINE_string('csv_input', '', 'Path to the CSV input')
+flags.DEFINE_string('output_path', '', 'Path to output TFRecord')
+flags.DEFINE_string('image_dir', '', 'Path to images')
+FLAGS = flags.FLAGS
 
 def _bytes_feature(value):
     """return a bytes_list from a string/byte"""
@@ -13,24 +20,32 @@ def _float_feature(value):
     """return a float_list from a float/double"""
     return tf.train.Feature(float_list=tf.train.FloatList(value=[value]))
 
+def _float_list_feature(value):
+  return tf.train.Feature(float_list=tf.train.FloatList(value=value))
+
+
 def _int64_feature(value):
     """returna int64_list from a bool/enum/int/uint"""
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
+def _int64_list_feature(value):
+  return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
+
+
 def split(df, group):
-    data = namedtuple('data', ['file', 'object'])
+    data = namedtuple('data', ['filename', 'object'])
     gb = df.groupby(group)
     return [data(filename, gb.get_group(x)) \
         for filename, x in zip(gb.groups.keys(), gb.groups)]
 
 def class_text_to_int(row_label):
-    if row_label == 'top_left':
+    if row_label == 'topleft':
         return 1
-    if row_label == 'top_right':
+    if row_label == 'topright':
         return 2
-    if row_label == 'bottom_right':
+    if row_label == 'bottomright':
         return 3
-    if row_label == 'bottom_left':
+    if row_label == 'bottomleft':
         return 4
     else:
         None
@@ -58,12 +73,12 @@ def create_tf_example(group, path):
         # xmaxs.append(row['xmax'] / width)
         # ymins.append(row['ymin'] / height)
         # ymaxs.append(row['ymax'] / height)
-        xmin = row['xmin'] / width 
-        xmax = row['xmax'] / width
-        ymin = row['ymin'] / height
-        ymax = row['ymax'] / height
-        center_x.append((xmin+xmax)/2)
-        center_y.append((ymin+ymax)/2)
+        # xmin = row['xmin'] / width 
+        #xmax = row['xmax'] / width
+        #ymin = row['ymin'] / height
+        #ymax = row['ymax'] / height
+        center_x.append(row['x'] / width)
+        center_y.append(row['y'] / height)
 
         classes_text.append(row['class'].encode('utf8'))
         classes.append(class_text_to_int(row['class']))
@@ -79,8 +94,8 @@ def create_tf_example(group, path):
         # 'image/object/bbox/xmax': dataset_util.float_list_feature(xmaxs),
         # 'image/object/bbox/ymin': dataset_util.float_list_feature(ymins),
         # 'image/object/bbox/ymax': dataset_util.float_list_feature(ymaxs),
-        'image/object/bbox/center_x': _float_feature(center_x),
-        'image/object/bbox/center_y': _float_feature(center_y),
+        'image/object/bbox/center_x': _float_list_feature(center_x),
+        'image/object/bbox/center_y': _float_list_feature(center_y),
         # 'image/object/class/text': dataset_util.bytes_list_feature(classes_text),
         # 'image/object/class/label': dataset_util.int64_list_feature(classes),
     }))
