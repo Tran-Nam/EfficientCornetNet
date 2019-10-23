@@ -4,7 +4,7 @@ from .model import Model
 class EfficentNet():
     def __init__(self):
         self.model = Model()
-    def net(self, img, scope='EfficentNet'):
+    def net(self, img, scope='EfficentCornerNet'):
         with tf.variable_scope(scope):
             # conv1 = tf.layers.conv2d(img, 32, kernel_size=3, strides=(1, 1), padding='same')
             conv1 = self.model.conv_block(img, 32, kernel_size=3)
@@ -14,17 +14,21 @@ class EfficentNet():
 
             # Efficent Net
             MBConv1_0 = self.model.MBConv6(pool1, 16, expands=1, scope='MBConv1_0') #256x256x16
-            MBConv6_0 = self.model.MBConv6(MBConv1_0, 24, kernel_size=3, max_pool=True, scope='MBConv6_3x3_0') #128x128x24
+            # MBConv6_0 = self.model.MBConv6(MBConv1_0, 24, kernel_size=3, max_pool=True, scope='MBConv6_3x3_0') #128x128x24
+            MBConv6_0 = self.model.MBConv6(MBConv1_0, 24, kernel_size=3, strides=(2, 2), scope='MBConv6_3x3_0') #128x128x24
             MBConv6_1 = self.model.MBConv6(MBConv6_0, 24, kernel_size=3, scope='MBConv6_3x3_1')
-            MBConv6_2 = self.model.MBConv6(MBConv6_1, 40, kernel_size=5, max_pool=True, scope='MBConv6_5x5_2') #64x64x40
+            # MBConv6_2 = self.model.MBConv6(MBConv6_1, 40, kernel_size=5, max_pool=True, scope='MBConv6_5x5_2') #64x64x40
+            MBConv6_2 = self.model.MBConv6(MBConv6_1, 40, kernel_size=5, strides=(2, 2), scope='MBConv6_5x5_2') #64x64x40
             MBConv6_3 = self.model.MBConv6(MBConv6_2, 40, kernel_size=5, scope='MBConv6_5x5_3')
             MBConv6_4 = self.model.MBConv6(MBConv6_3, 80, kernel_size=3, scope='MBConv6_3x3_4')
             MBConv6_5 = self.model.MBConv6(MBConv6_4, 80, kernel_size=3, scope='MBConv6_3x3_5')
             MBConv6_6 = self.model.MBConv6(MBConv6_5, 80, kernel_size=3, scope='MBConv6_3x3_6')
-            MBConv6_7 = self.model.MBConv6(MBConv6_6, 112, kernel_size=5, max_pool=True, scope='MBConv6_5x5_7') #32x32x112
+            # MBConv6_7 = self.model.MBConv6(MBConv6_6, 112, kernel_size=5, max_pool=True, scope='MBConv6_5x5_7') #32x32x112
+            MBConv6_7 = self.model.MBConv6(MBConv6_6, 112, kernel_size=5, strides=(2, 2), scope='MBConv6_5x5_7') #32x32x112
             MBConv6_8 = self.model.MBConv6(MBConv6_7, 112, kernel_size=5, scope='MBConv6_5x5_8')
             MBConv6_9 = self.model.MBConv6(MBConv6_8, 112, kernel_size=5, scope='MBConv6_5x5_9')
-            MBConv6_10 = self.model.MBConv6(MBConv6_9, 192, kernel_size=5, max_pool=True, scope='MBConv6_5x5_10') #16x16x192
+            # MBConv6_10 = self.model.MBConv6(MBConv6_9, 192, kernel_size=5, max_pool=True, scope='MBConv6_5x5_10') #16x16x192
+            MBConv6_10 = self.model.MBConv6(MBConv6_9, 192, kernel_size=5, strides=(2, 2), scope='MBConv6_5x5_10') #16x16x192
             MBConv6_11 = self.model.MBConv6(MBConv6_10, 192, kernel_size=5, scope='MBConv6_5x5_11')
             MBConv6_12 = self.model.MBConv6(MBConv6_11, 192, kernel_size=5, scope='MBConv6_5x5_12')
             MBConv6_13 = self.model.MBConv6(MBConv6_12, 192, kernel_size=5, scope='MBConv6_5x5_13')

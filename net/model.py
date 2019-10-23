@@ -48,12 +48,12 @@ class Model():
                 x = tf.nn.relu(x)
             return x
 
-    def MBConv6(self, inputs, out_dim, kernel_size=3, expands=6, is_training=True, max_pool=False, scope='MBConv6'): # add max pool
+    def MBConv6(self, inputs, out_dim, kernel_size=3, expands=6, strides=(1, 1), is_training=True, max_pool=False, scope='MBConv6'): # add max pool
         print(inputs.get_shape().as_list())
         in_dim = inputs.get_shape().as_list()[3]
         expands_dim = expands * out_dim
         with tf.variable_scope(scope):
-            base = tf.layers.conv2d(inputs, out_dim, kernel_size=1, padding='same')
+            base = tf.layers.conv2d(inputs, out_dim, kernel_size=1, strides=strides, padding='same')
             x = self.conv_block(base, expands_dim, kernel_size=1, is_training=is_training, scope='conv1x1_bn_relu')
             x = self.DWConv_block(x, expands_dim, kernel_size=3, is_training=is_training, scope='DwConv_bn_relu')
             x = self.conv_block(x, out_dim, kernel_size=1, is_training=is_training, use_relu=False, scope='conv1x1_bn')
