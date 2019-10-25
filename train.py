@@ -24,15 +24,18 @@ mask = tf.placeholder(tf.float32, shape=[None, 128, 128])
 
 EfficentNet = EfficentNet()
 # init = tf.global_variables_initializer()
-heatmap, offset = EfficentNet.net(img=img)
-f_loss = focal_loss(heatmap, heatmap_gt)
-o_loss = offset_loss(offset, offset_gt, mask)
-total_loss = f_loss + o_loss
+output = EfficentNet.net(img=img)
+heatmap, offset = output
+gt = (heatmap_gt, offset_gt, mask)
+loss = EfficentNet.loss(output, gt)
+# f_loss = focal_loss(heatmap, heatmap_gt)
+# o_loss = offset_loss(offset, offset_gt, mask)
+# total_loss = f_loss + o_loss
 # focal_loss = loss.focal_loss2(heatmap, img)
 writer = tf.summary.FileWriter('./graphs', tf.get_default_graph())
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    heatmap, offset, loss = sess.run([heatmap, offset, total_loss], feed_dict={img: _img, heatmap_gt: _heatmap, offset_gt: _offset, mask: _mask})
+    heatmap, offset, loss = sess.run([heatmap, offset, loss], feed_dict={img: _img, heatmap_gt: _heatmap, offset_gt: _offset, mask: _mask})
     
     # print(offset.shape) ### numpy array !!!!!!!!!!! 0_0
     print(type(offset))
