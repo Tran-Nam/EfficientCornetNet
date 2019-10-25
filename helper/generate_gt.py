@@ -1,6 +1,7 @@
 import numpy as np 
 import cv2 
-import utils
+from . import utils
+# import utils
 
 def gen_gt(im, pts, side=128): # keep aspect ratio   
     """
@@ -35,6 +36,9 @@ def gen_gt(im, pts, side=128): # keep aspect ratio
     for i in range(n_pt):
         center = pts[i]     
         utils.draw_gaussian(heatmap[:, :, i], center, radius=radius)
+    
+    heatmap = heatmap.astype('float32')
+    offset = offset.astype('float32')
 
     return im, pts, heatmap, offset
  
