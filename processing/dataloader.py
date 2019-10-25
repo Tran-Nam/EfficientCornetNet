@@ -2,21 +2,28 @@ import tensorflow as tf
 import pandas as pd 
 import numpy as np 
 import os
+import pathlib 
+from PIL import Image
+import cv2
+# import matplotlib.pyplot as plt 
+tf.enable_eager_execution()
 
 import sys
 sys.path.append('..')
 
-from .augment import random_crop, rotate, add_noise, color_variance
+# from .augment import random_crop, rotate, add_noise, color_variance
 from helper.generate_gt import gen_gt
 from helper.utils import resize
 
 class DataLoader(object):
     def __init__(self, image_dir, labels_path='../../data/labels.csv'):
-        self.image_dir = image_dir
+        # tf.enable_eager_execution()
+        self.image_dir = pathlib.Path(image_dir)
         self.labels = pd.read_csv(labels_path)
         # self.ext = ['jpg', 'png']
         self.ds = tf.data.Dataset.list_files(os.path.join(image_dir, '*'))
-        n_img = len(list(set(self.ds['filename'])))
+        n_img = len(list(set(self.labels['filename'])))
+        print('No. images: {}'.format(n_img))
 
         self.BATCH_SIZE = 4
         self.IMG_HEIGHT = 512
@@ -27,9 +34,17 @@ class DataLoader(object):
         """
         get corners by file path
         """
-        filename = file_path.split('/')[-1]
-        pts = np.empty((4, 2))
+        # print(file_path)
+        # print(type(file_path))
+        file_path = file_path.decode('utf-8')
+        # print(file_path.decode('utf-8'))
+        # filename = tf.string_split([file_path], '/').values[-1]
+        # filename = str(filename)
+        filename = str(file_path).split('/')[-1]
+        # print(filename)
+        pts = np.zeros((4, 2))
         rows = self.labels[self.labels['filename']==filename]
+        # print(rows)
         for idx, row in rows.iterrows():
             row_c = row['class']
             if row_c=='topleft':
@@ -40,7 +55,7 @@ class DataLoader(object):
                 pts_loc = 2
             elif row_c=='bottomleft':
                 pts_loc = 3
-            pts[pts_loc] = np.array([row['x'], row['y']]).reshape[1, 2]
+            pts[pts_loc] = np.array([row['x'], row['y']])
         # pts = np.array(pts).reshape(4, 2)
         return pts
 
@@ -54,25 +69,38 @@ class DataLoader(object):
     @staticmethod
     def decode_img(img):
         img = tf.image.decode_jpeg(img, channels=3)
-        img = tf.image.convert_image_dtype(img, tf.float32)
+        # img = tf.image.convert_image_dtype(img, tf.float32)
+        # print(img.get_shape().as_list())
+        # print('*'*30)
         return img
 
     def process_path(self, file_path):
         # heatmap, offset = self.get_labels(file_path)
-        img = tf.io.read_file(file_path)
-        img = self.decode_img(img)
+        # img = tf.io.read_file(file_path)
+        # img = self.decode_img(img)
+        # file_path = tf.strings.as_string(file_path)
+        print(file_path)
+        # print('-'*20)
+        img = Image.open(file_path)
+        img = np.array(img)
+        # print(img.shape)
+        # input()
+        # print(img.get_shape().as_list())
 
         #################################
         pts = self.get_corners(file_path)
+        # print(pts)
         # resize to 512x512
         img, pts = resize(img, pts, side=512)
         _, __, heatmap, offset = gen_gt(img, pts)
-
-
+        print('Gen heatmap: Done!')
+        print(pts)
+        # print(np.where(heatmap>0)[0])
+        print('*'*30)
         return img, heatmap, offset
 
     def create_pairs(self):
-        self.labeled_ds = self.ds.map(process_path, num_parallel_calls=AUTOTUNE)
+        self.labeled_ds = self.ds.map(lambda x: tf.py_func(self.process_path, [x], [tf.uint8, tf.float32, tf.float32]))
         self.train_ds = self.prepare_for_training(self.labeled_ds)
         return self
 
@@ -91,16 +119,37 @@ class DataLoader(object):
         ds = ds.batch(self.BATCH_SIZE)
 
         # let dataset fetch batch in background when model is training
-        ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+        ds = ds.prefetch(buffer_size=32)
 
         return ds
 
     def next_batch(self):
-        image_batch, label_batch = next(iter(self.train_ds))
-        return image_batch, label_batch
+        image_batch, heatmap_batch, offset_batch = next(iter(self.train_ds))
+        return image_batch, heatmap_batch, offset_batch
 
 if __name__=='__main__':
     dataload = DataLoader('../../data/images')
     dataload.create_pairs()
-    image_batch, label_batch = dataload.next_batch()
-    print(image_batch.shape)
+    image_batch, heatmap_batch, offset_batch = dataload.next_batch()
+    print(image_batch.shape, heatmap_batch.shape, offset_batch.shape)
+    for i in range(image_batch.shape[0]):   
+        dir_name = str(i)
+        if not os.path.isdir(dir_name):
+            os.mkdir(dir_name)
+        im = image_batch[i, :, :, :].numpy()   
+        heatmap = heatmap_batch[i, :, :, :].numpy()
+        offset = offset_batch[i, :, :, :].numpy()
+
+        cv2.imwrite(os.path.join(dir_name, 'im.png'), im.astype('uint8'))
+
+        max_value = np.max(heatmap)
+        heatmap = (heatmap*255/max_value).astype('uint8')
+        for j in range(heatmap.shape[2]):
+            im_ = cv2.applyColorMap(heatmap[:, :, j], cv2.COLORMAP_JET)
+            cv2.imwrite(os.path.join(dir_name, '{}.png'.format(j)), im_)
+
+        max_value = np.max(offset)
+        offset = (offset*255/(max_value+1e-8)).astype('uint8')
+        for j in range(offset.shape[2]):
+            im_ = cv2.applyColorMap(offset[:, :, j], cv2.COLORMAP_JET)
+            cv2.imwrite(os.path.join(dir_name, '{}_.png'.format(j)), im_)
