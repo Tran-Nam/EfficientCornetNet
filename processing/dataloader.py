@@ -21,7 +21,7 @@ class DataLoader(object):
         self.image_dir = pathlib.Path(image_dir)
         self.labels = pd.read_csv(labels_path)
         # self.ext = ['jpg', 'png']
-        self.ds = tf.data.Dataset.list_files(os.path.join(image_dir, '*'))
+        self.ds = tf.data.Dataset.list_files(os.path.join(image_dir, '*.jpg'))
         n_img = len(list(set(self.labels['filename'])))
         print('No. images: {}'.format(n_img))
 
@@ -79,7 +79,7 @@ class DataLoader(object):
         # img = tf.io.read_file(file_path)
         # img = self.decode_img(img)
         # file_path = tf.strings.as_string(file_path)
-        print(file_path)
+        # print(file_path)
         # print('-'*20)
         img = Image.open(file_path)
         img = np.array(img)
@@ -93,18 +93,18 @@ class DataLoader(object):
         # resize to 512x512
         img, pts = resize(img, pts, side=512)
         _, __, heatmap, offset = gen_gt(img, pts)
-        print('Gen heatmap: Done!')
-        print(pts)
+        # print('Gen heatmap: Done!')
+        # print(pts)
         # print(np.where(heatmap>0)[0])
-        print('*'*30)
+        # print('*'*30)
         return img, heatmap, offset
 
     def create_pairs(self):
-        self.labeled_ds = self.ds.map(lambda x: tf.py_func(self.process_path, [x], [tf.uint8, tf.float32, tf.float32]))
+        self.labeled_ds = self.ds.map(lambda x: tf.py_func(self.process_path, [x], [tf.uint8, tf.float32, tf.float32]), num_parallel_calls=4) #num cores
         self.train_ds = self.prepare_for_training(self.labeled_ds)
         return self
 
-    def prepare_for_training(self, ds, cache=True, shuffle_buffer_size=1000):       
+    def prepare_for_training(self, ds, cache=True, shuffle_buffer_size=32):       
         # self.create_pairs()
         if cache:
             if isinstance(cache, str):
@@ -112,7 +112,7 @@ class DataLoader(object):
             else:
                 ds = ds.cache()
         
-        ds = ds.shuffle(buffer_size=shuffle_buffer_size)
+        ds = ds.shuffle(buffer_size=shuffle_buffer_size) # num batch per epoch
 
         # repeat forever
         ds = ds.repeat()
@@ -128,28 +128,46 @@ class DataLoader(object):
         return image_batch, heatmap_batch, offset_batch
 
 if __name__=='__main__':
-    dataload = DataLoader('../../data/images')
+    dataload = DataLoader('../../images')
     dataload.create_pairs()
-    image_batch, heatmap_batch, offset_batch = dataload.next_batch()
-    print(image_batch.shape, heatmap_batch.shape, offset_batch.shape)
-    for i in range(image_batch.shape[0]):   
-        dir_name = str(i)
-        if not os.path.isdir(dir_name):
-            os.mkdir(dir_name)
-        im = image_batch[i, :, :, :].numpy()   
-        heatmap = heatmap_batch[i, :, :, :].numpy()
-        offset = offset_batch[i, :, :, :].numpy()
+    # for i in range(10):
+    #     image_batch, heatmap_batch, offset_batch = dataload.next_batch()
+    #     print(image_batch.shape, heatmap_batch.shape, offset_batch.shape)
 
-        cv2.imwrite(os.path.join(dir_name, 'im.png'), im.astype('uint8'))
+    import time
+    default_timeit_steps = 1000
+    def timeit(ds, steps=default_timeit_steps):
+        start = time.time()
+        it = iter(ds)
+        for i in range(steps):
+            batch = next(it)
+            if i%10==0:
+                print('.', end='')
+        print()
+        end = time.time()
+        duration = end - start
+        print('{} batches: {} s'.format(steps, duration))
+        print('{:0.5f} Images/s'.format(4*steps/duration))
 
-        max_value = np.max(heatmap)
-        heatmap = (heatmap*255/max_value).astype('uint8')
-        for j in range(heatmap.shape[2]):
-            im_ = cv2.applyColorMap(heatmap[:, :, j], cv2.COLORMAP_JET)
-            cv2.imwrite(os.path.join(dir_name, '{}.png'.format(j)), im_)
+    timeit(dataload.ds)
+    # for i in range(image_batch.shape[0]):   
+    #     dir_name = str(i)
+    #     if not os.path.isdir(dir_name):
+    #         os.mkdir(dir_name)
+    #     im = image_batch[i, :, :, :].numpy()   
+    #     heatmap = heatmap_batch[i, :, :, :].numpy()
+    #     offset = offset_batch[i, :, :, :].numpy()
 
-        max_value = np.max(offset)
-        offset = (offset*255/(max_value+1e-8)).astype('uint8')
-        for j in range(offset.shape[2]):
-            im_ = cv2.applyColorMap(offset[:, :, j], cv2.COLORMAP_JET)
-            cv2.imwrite(os.path.join(dir_name, '{}_.png'.format(j)), im_)
+    #     cv2.imwrite(os.path.join(dir_name, 'im.png'), im.astype('uint8'))
+
+    #     max_value = np.max(heatmap)
+    #     heatmap = (heatmap*255/max_value).astype('uint8')
+    #     for j in range(heatmap.shape[2]):
+    #         im_ = cv2.applyColorMap(heatmap[:, :, j], cv2.COLORMAP_JET)
+    #         cv2.imwrite(os.path.join(dir_name, '{}.png'.format(j)), im_)
+
+    #     max_value = np.max(offset)
+    #     offset = (offset*255/(max_value+1e-8)).astype('uint8')
+    #     for j in range(offset.shape[2]):
+    #         im_ = cv2.applyColorMap(offset[:, :, j], cv2.COLORMAP_JET)
+    #         cv2.imwrite(os.path.join(dir_name, '{}_.png'.format(j)), im_)
