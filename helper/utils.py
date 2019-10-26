@@ -41,7 +41,7 @@ def calcRadius(size, iou_thresh=0.7): # implement base on origin paper
 
     return int(min(r1, r2, r3))
 
-def gaussian2D(size, sigma=1):
+def gaussian2D(size, sigma=1): # normalize range [0, 1]
     h, w = size
     gaussian = np.zeros((h, w))
     center = [h//2, w//2]
@@ -120,7 +120,49 @@ def getSizePolygon(pts):
     size = (max(side_left, side_right), max(side_top, side_bottom))
     return size
 
+def findMax3D(x):
+    """
+    find index of max value in 2d array
+    """
+    m, n = x.shape 
+    x_ = x.ravel()
+    idx = np.argmax(x_)
+    i = idx // m 
+    j = idx % m 
+    return i, j
+
+
+def decodeDets(heatmap, offset, ratio=4):
+    """
+    decode detection to find corner in origin image
+    :param heatmap: bxhxwx4
+    :param offset: bxhxwx2
+    :ratio: origin size / size of heatmap
+    """
+    batch_size, m, n, n_pts = heatmap.shape
+    pts = np.zeros((batch_size, 4, 2)) # batch_size corners, 4x2 each
+    for i in range(n_pts):
+        heatmap_corner_i = heatmap[:, :, :, i]
+        tmp = heatmap_corner_i.reshape(batch_size, -1) # ravel heatmap
+        idx = (np.argmax(tmp, axis=1)).reshape(-1, 1)
+        u = idx // m 
+        v = idx % m
+        position = np.concatenate((u, v), axis=1) # concat y and x
+        for batch_i in range(position.shape[0]):
+            position_i = position[batch_i, :]
+            offset_i = offset[batch_i, u[batch_i], v[batch_i], :]
+            pts[batch_i, i, :] = position_i*ratio + offset_i
+            # print(position_i, u[batch_i], v[batch_i], offset_i, pts[batch_i, i, :])
+            # input()
+    # print(pts.shape)
+    pts = pts.astype('int')
+    return pts
+
+
+
+"""
 if __name__ == '__main__':
+    
     import cv2
     im = np.zeros((100, 100, 3))
     pts = [[20, 20],
@@ -145,3 +187,10 @@ if __name__ == '__main__':
     # cv2.imshow('a', heatmap)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
+    
+
+    heatmap = np.random.random((32, 128, 128, 4))
+    offset = np.random.random((32, 128, 128, 2))
+    result = decodeDets(heatmap, offset)
+"""
+
