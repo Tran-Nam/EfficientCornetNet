@@ -1,9 +1,15 @@
 import tensorflow as tf  
+import sys
+sys.path.append('..')
 from .model import Model
+from module.loss import focal_loss, offset_loss
 
 class EfficentNet():
     def __init__(self):
         self.model = Model()
+        self.focal_loss = focal_loss
+        self.offset_loss = offset_loss
+        self.gamma = 1
     def net(self, img, scope='EfficentCornerNet'):
         with tf.variable_scope(scope):
             # conv1 = tf.layers.conv2d(img, 32, kernel_size=3, strides=(1, 1), padding='same')
@@ -44,3 +50,12 @@ class EfficentNet():
             offset = self.model.offset(UPConv_2)
 
             return heat, offset
+
+    def loss(self, output, gt, scope='loss'):
+        with tf.variable_scope(scope):
+            heatmap, offset = output 
+            heatmap_gt, offset_gt, mask = gt 
+            f_loss = self.focal_loss(heatmap, heatmap_gt)
+            o_loss = self.offset_loss(offset, offset_gt, mask)
+            loss = f_loss + self.gamma*o_loss
+            return loss
