@@ -25,7 +25,7 @@ class DataLoader(object):
         n_img = len(list(set(self.labels['filename'])))
         print('No. images: {}'.format(n_img))
 
-        self.BATCH_SIZE = 4
+        self.BATCH_SIZE = 32
         self.IMG_HEIGHT = 512
         self.IMG_WIDTH = 512
         self.STEP_PER_EPOCH = np.ceil(n_img/self.BATCH_SIZE)
@@ -83,6 +83,7 @@ class DataLoader(object):
         # print('-'*20)
         img = Image.open(file_path)
         img = np.array(img)
+        img = img 
         # print(img.shape)
         # input()
         # print(img.get_shape().as_list())
@@ -92,6 +93,7 @@ class DataLoader(object):
         # print(pts)
         # resize to 512x512
         img, pts = resize(img, pts, side=512)
+        img = img.astype('float32') * 1./255
         _, __, heatmap, offset = gen_gt(img, pts)
         # print('Gen heatmap: Done!')
         # print(pts)
@@ -100,11 +102,11 @@ class DataLoader(object):
         return img, heatmap, offset
 
     def create_pairs(self):
-        self.labeled_ds = self.ds.map(lambda x: tf.py_func(self.process_path, [x], [tf.uint8, tf.float32, tf.float32]), num_parallel_calls=4) #num cores
+        self.labeled_ds = self.ds.map(lambda x: tf.py_func(self.process_path, [x], [tf.float32, tf.float32, tf.float32]), num_parallel_calls=4) #num cores
         self.train_ds = self.prepare_for_training(self.labeled_ds)
         return self
 
-    def prepare_for_training(self, ds, cache=True, shuffle_buffer_size=32):       
+    def prepare_for_training(self, ds, cache=False, shuffle_buffer_size=32):       
         # self.create_pairs()
         if cache:
             if isinstance(cache, str):
@@ -135,21 +137,28 @@ if __name__=='__main__':
     #     print(image_batch.shape, heatmap_batch.shape, offset_batch.shape)
 
     import time
-    default_timeit_steps = 1000
+    default_timeit_steps = 100
     def timeit(ds, steps=default_timeit_steps):
         start = time.time()
         it = iter(ds)
         for i in range(steps):
             batch = next(it)
+            
+            # im, h, o = next(it)
+            # print(batch[0])
+            # input()
+            # im, h, o = ds.next_batch()
             if i%10==0:
                 print('.', end='')
+                # print(len(batch))
         print()
         end = time.time()
         duration = end - start
         print('{} batches: {} s'.format(steps, duration))
         print('{:0.5f} Images/s'.format(4*steps/duration))
 
-    timeit(dataload.ds)
+    timeit(dataload.train_ds)
+    # timeit(dataload)
     # for i in range(image_batch.shape[0]):   
     #     dir_name = str(i)
     #     if not os.path.isdir(dir_name):
