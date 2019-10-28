@@ -30,17 +30,20 @@ def gen_gt(im, pts, side=128): # keep aspect ratio
 
     # gen heatmap
     heatmap = np.zeros([side, side, n_pt])
+    mask = np.zeros([side, side])
     size = utils.getSizePolygon(pts)
     radius = utils.calcRadius(size)
     # print(radius, size)
     for i in range(n_pt):
         center = pts[i]     
+        mask[center[0], center[1]] = 1
         utils.draw_gaussian(heatmap[:, :, i], center, radius=radius)
     
     heatmap = heatmap.astype('float32')
     offset = offset.astype('float32')
+    mask = mask.astype('float32')
 
-    return im, pts, heatmap, offset
+    return im, pts, heatmap, offset, mask
  
 
 if __name__=='__main__':
@@ -58,11 +61,13 @@ if __name__=='__main__':
     # print(boxes.shape)
     # print(boxes[0, :, :])
 
-    new_im, new_pts, heatmap, offset = gen_gt(im, pts)
+    new_im, new_pts, heatmap, offset, mask = gen_gt(im, pts)
     
     print('-'*20)
     print(heatmap.shape)
     print(offset.shape)
+    print(mask.shape)
+    print(np.where(mask==1))
     
 
     # print(boxes.shape)
