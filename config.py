@@ -1,4 +1,10 @@
 BATCH_SIZE = 4
-pretrained = False 
-pretrained_path = ''
+PRETRAINED = False 
+MODEL_PATH = ''
 
+LEARNING_RATE = 1e-4
+DECAY_STEP = 100000
+DECAY_RATE = 0.95 
+
+INTERVAL_SAVE = 100
+MODEL_DIR = 'checkpoint'
