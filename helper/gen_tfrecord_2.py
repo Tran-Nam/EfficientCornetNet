@@ -6,17 +6,13 @@ import cv2
 import numpy as np
 
 from utils import resize
-<<<<<<< HEAD
+
 from generate_gt import gen_gt
 # from PIL import Image
 # from collections import namedtuple, OrderedDict
 
-flags = tf.app.flags
-flags.DEFINE_string('csv_input', '', 'Path to the CSV input')
-flags.DEFINE_string('output_path', '', 'Path to output TFRecord')
-flags.DEFINE_string('image_dir', '', 'Path to images')
-FLAGS = flags.FLAGS
-=======
+
+
 # from PIL import Image
 # from collections import namedtuple, OrderedDict
 
@@ -25,7 +21,7 @@ FLAGS = flags.FLAGS
 # flags.DEFINE_string('output_path', '', 'Path to output TFRecord')
 # flags.DEFINE_string('image_dir', '', 'Path to images')
 # FLAGS = flags.FLAGS
->>>>>>> f907a5e934bd75d12fd2e8ab61717af54cc15f6e
+
 
 def _bytes_feature(value):
     """return a bytes_list from a string/byte"""
@@ -101,11 +97,9 @@ def create_tfrecord(out, image_dir):
 
         image, pts = resize(image, pts, side=512)
 
-<<<<<<< HEAD
         _, __, heatmap, offset, mask = gen_gt(image, pts)
 
-=======
->>>>>>> f907a5e934bd75d12fd2e8ab61717af54cc15f6e
+
         # print(count)
         # if count == 100:
         #     cv2.imwrite('a.png', image)
@@ -115,13 +109,11 @@ def create_tfrecord(out, image_dir):
 
         feature = {
             'image': _bytes_feature(image.tostring()),
-<<<<<<< HEAD
             'heatmap': _bytes_feature(heatmap.tostring()),
             'offset': _bytes_feature(offset.tostring()),
             'mask': _bytes_feature(mask.tostring())
-=======
-            'label': _bytes_feature(pts.tostring())
->>>>>>> f907a5e934bd75d12fd2e8ab61717af54cc15f6e
+
+            # 'label': _bytes_feature(pts.tostring())
         }
 
         example = tf.train.Example(features=tf.train.Features(feature=feature))
@@ -135,10 +127,8 @@ if __name__=='__main__':
     labels_csv = '../../data/labels.csv'
     image_dir = '../../images'
     labels = pd.read_csv(labels_csv)
-<<<<<<< HEAD
     out = 'data_2.tfrecords'
-=======
-    out = 'data.tfrecords'
->>>>>>> f907a5e934bd75d12fd2e8ab61717af54cc15f6e
+
+    #out = 'data.tfrecords'
     create_tfrecord(out, image_dir)
 
