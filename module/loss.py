@@ -23,17 +23,18 @@ def smooth_l1_loss(pred, gt, sigma=1):
     # zeros = array_ops.zeros_like(pred, dtype=pred.dtype)
     # ones = array_ops.ones_like(pred, dtype=pred.dtype)
     # mask = tf.where()
-    smooth_l1_sign = tf.cast(tf.less(diff, sigma), tf.float64) # 0, 1
+    smooth_l1_sign = tf.cast(tf.less(diff, sigma), tf.float32) # 0, 1
     smooth_l1_case1 = tf.multiply(diff, diff) / 2.0
     smooth_l1_case2 = tf.subtract(diff, 0.5*sigma) * sigma
     return tf.add(tf.multiply(smooth_l1_sign, smooth_l1_case1), \
-        tf.multiply(tf.subtract(tf.abs(smooth_l1_sign), 1.0), smooth_l1_case2))
+        tf.multiply(tf.abs(tf.subtract(smooth_l1_sign, 1.0)), smooth_l1_case2))
 
 def offset_loss(pred, gt, mask):
     n_corner = tf.reduce_sum(mask)  
+    # print(n_corner)
     mask = tf.stack((mask, mask), axis=-1) # mask for 2 axis in offset map
     l1_loss = smooth_l1_loss(pred, gt)
-    l1_loss /= (n_corner + tf.convert_to_tensor(1e-6, dtype=tf.float64))
+    l1_loss /= (n_corner + tf.convert_to_tensor(1e-6, dtype=tf.float32))
     return tf.reduce_sum(tf.multiply(l1_loss, mask))
 
 
@@ -73,23 +74,30 @@ def focal_loss(pred, gt, alpha=2, beta=4):
 
     return tf.reduce_mean(per_entry_loss)
 
-pred = np.random.random((1, 128, 128, 4))
-gt = np.random.random((1, 128, 128, 4))
-pred_off = np.random.random((1, 128, 128, 2))
-gt_off = np.random.random((1, 128, 128, 2))
-mask = np.zeros((1, 128, 128))
-mask[0, 50:60, 60:70] = 1
+def loss(output, gt):
+    heatmap, offset = output 
+    heatmap_gt, offset_gt, mask = gt 
+    f_loss = focal_loss(heatmap, heatmap_gt)
+    o_loss = offset_loss(offset, offset_gt, mask)
+    return f_loss + o_loss
 
-a = focal_loss_2(pred, gt)
-b = focal_loss(pred, gt)
-c = smooth_l1_loss(pred, gt)
-d = smooth_l1_loss_2(pred, gt)
-e = offset_loss(pred_off, gt_off, mask)
+# pred = np.random.random((1, 128, 128, 4))
+# gt = np.random.random((1, 128, 128, 4))
+# pred_off = np.random.random((1, 128, 128, 2))
+# gt_off = np.random.random((1, 128, 128, 2))
+# mask = np.zeros((1, 128, 128))
+# mask[0, 50:60, 60:70] = 1
 
-print(a)
-with tf.Session() as sess:
-    b, c, d, e = sess.run([b, c, d, e])
-    print(b)
-    print(np.mean(c))
-    print(np.mean(d))
-    print(e)
+# a = focal_loss_2(pred, gt)
+# b = focal_loss(pred, gt)
+# c = smooth_l1_loss(pred, gt)
+# d = smooth_l1_loss_2(pred, gt)
+# e = offset_loss(pred_off, gt_off, mask)
+
+# print(a)
+# with tf.Session() as sess:
+#     b, c, d, e = sess.run([b, c, d, e])
+#     print(b)
+#     print(np.mean(c))
+#     print(np.mean(d))
+#     print(e)
