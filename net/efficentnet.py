@@ -2,13 +2,14 @@ import tensorflow as tf
 import sys
 sys.path.append('..')
 from .model import Model
-from module.loss import focal_loss, offset_loss
+from module.loss import focal_loss, offset_loss, focal_loss_2, loss
 
 class EfficentNet():
     def __init__(self):
         self.model = Model()
         self.focal_loss = focal_loss
         self.offset_loss = offset_loss
+        self.loss = loss
         self.gamma = 1
     def net(self, img, scope='EfficentCornerNet'):
         with tf.variable_scope(scope):
@@ -51,11 +52,23 @@ class EfficentNet():
 
             return heat, offset
 
+
     def loss(self, output, gt, scope='loss'):
+        heatmap, offset = output 
+        heatmap_gt, offset_gt, mask = gt 
         with tf.variable_scope(scope):
-            heatmap, offset = output 
-            heatmap_gt, offset_gt, mask = gt 
+            # with tf.variable_scope('focal_loss'):
+            #     f_loss = self.focal_loss(heatmap, heatmap_gt)
+            # with tf.variable_scope('offset_loss'):
+            #     o_loss = self.offset_loss(offset, offset_gt, mask)
             f_loss = self.focal_loss(heatmap, heatmap_gt)
             o_loss = self.offset_loss(offset, offset_gt, mask)
-            loss = f_loss + self.gamma*o_loss
-            return loss
+            return tf.add(f_loss, o_loss)
+            # heatmap, offset = output 
+            # heatmap_gt, offset_gt, mask = gt 
+            # f_loss = self.focal_loss(heatmap, heatmap_gt)
+            # o_loss = self.offset_loss(offset, offset_gt, mask)
+            # return self.focal_loss(heatmap, heatmap_gt) + self.offset_loss(offset, offset_gt, mask)
+            # return self.loss(output, gt)
+            # return f_loss + self.gamma*o_loss
+            # return loss
