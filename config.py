@@ -2,6 +2,8 @@ BATCH_SIZE = 4
 PRETRAINED = False 
 MODEL_PATH = ''
 
+DATA_PATH = '../data/data_2.tfrecords'
+
 LEARNING_RATE = 1e-4
 DECAY_STEP = 100000
 DECAY_RATE = 0.95 
