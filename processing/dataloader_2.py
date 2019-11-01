@@ -21,6 +21,7 @@ def parser(record):
 
     image = tf.decode_raw(parsed['image'], tf.uint8)
     image = tf.cast(image, tf.float32) *1./255
+    # image = tf.
     image = tf.reshape(image, [512, 512, 3])
     heatmap = tf.decode_raw(parsed['heatmap'], tf.float32)
     heatmap = tf.reshape(heatmap, [128, 128, 4])
@@ -39,7 +40,7 @@ def input_fn(filenames='helper/data_2.tfrecords', is_training=True):
     if is_training: # train
         dataset = (
             tf.data.TFRecordDataset(filenames=filenames, num_parallel_reads=3)
-                .shuffle(buffer_size=200)
+                .shuffle(buffer_size=5*config.BATCH_SIZE)
                 .apply(tf.contrib.data.map_and_batch(parser, config.BATCH_SIZE))
                 .prefetch(buffer_size=1)
         )

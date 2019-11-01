@@ -26,7 +26,7 @@ class Train():
         # self.lr = config.LEARNING_RATE
         # self.decay_step = config.DECAY_STEP
         # self.dacay_rate = config.DECAY_RATE
-        self.num_steps = 10
+        self.num_steps = 1000
 
         # self.pretrained = config.PRETRAINED
         # self.model_path = config.MODEL_PATH
@@ -86,7 +86,8 @@ class Train():
         gt = (heatmap, offset, mask)
 
         # batch, init_op = self.iterator.get_next()
-        batch, iterator_init_op = input_fn()
+        with tf.variable_scope('data_pipeline'):
+            batch, iterator_init_op = input_fn()
         image = batch['image']
         heatmap = batch['heatmap']
         offset = batch['offset']
@@ -110,20 +111,25 @@ class Train():
         # build graph
         # with tf.variable_scope('', reuse=True):
         output = self.net.net(img=image)
-        heatmap_det, offset_det = output 
+        heatmap_det, offset_det = output
         # loss = self.net.loss(output, gt)
-        f_loss = self.focal_loss(heatmap_det, heatmap)
-        o_loss = self.offset_loss(offset_det, offset, mask)
-        loss = tf.add(f_loss, o_loss)
+        # loss = self.net.loss(output, gt)
+        with tf.variable_scope('loss'):
+            f_loss = self.focal_loss(heatmap_det, heatmap)
+            o_loss = self.offset_loss(offset_det, offset, mask)
+            loss = tf.add(f_loss, o_loss)
         # print(loss)
         # print(f_loss)
         # print(o_loss)
-        train_op = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(loss)
+        with tf.variable_scope('optimizer'):
+            train_op = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(loss)
         # print(train_op)
-        # writer = tf.summary.FileWriter('./graphs', tf.get_default_graph())
+        writer = tf.summary.FileWriter('./graphs', tf.get_default_graph())
             # trainable_variables = tf.trainable_variables()
         
         init = tf.global_variables_initializer() 
+
+        f_summary = tf.summary.scalar(name='loss', tensor=loss)
         
         # update = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         # with tf.control_dependencies(update):
@@ -152,8 +158,10 @@ class Train():
         
         for step in range(self.num_steps):
             # print(step)
-            f, o, loss_ = sess.run([f_loss, o_loss, loss])
-            print('step %d, loss %g, focal loss %g, offset loss %g'%(step, loss_, f, o))
+            loss_, _ = sess.run([loss, train_op])
+            print('step %d, loss %g'%(step, loss_))
+            summary = sess.run(f_summary)
+            writer.add_summary(summary, step)
             # print(loss_)
             # if step%self.interval_save==0 and step>0:
             #     saver.save(sess, self.model_path, epoch)
