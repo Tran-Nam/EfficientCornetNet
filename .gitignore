@@ -1,3 +1,6 @@
 graphs/
 */__pycache__
 __pycache__
+model/
+checkpoint/
+__*/
