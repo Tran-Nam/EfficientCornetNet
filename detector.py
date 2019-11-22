@@ -2,7 +2,7 @@ import tensorflow as tf
 import cv2
 from PIL import Image
 import numpy as np
-from helper.utils import decodeDets
+from helper.utils import decodeDets, resize_image
 
 model_path = './model/model.pb'
 
@@ -25,9 +25,10 @@ with detection_graph.as_default():
 #     print(node)
 
 
-im = cv2.imread('b.jpg')
+im = cv2.imread('a.png')
 im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-im = cv2.resize(im, (512, 512))
+# im = cv2.resize(im, (512, 512))
+im = resize_image(im)
 im_expand = np.expand_dims(im, axis=0)
 # im = np.zeros((1, 128, 128, 4))
 
@@ -65,10 +66,16 @@ with detection_graph.as_default():
         print(corners.shape)
         
         for i in range(len(corners)):
-            pt = corners[i]
+            pt = corners[i][::-1] # reverse respect width, height
             cv2.circle(im, tuple(pt), 5, (0, 0, 255), -1)
         
-        cv2.imshow('', im)
+        tl = heatmap[:, :, 0]
+        tl = (tl*255/np.max(tl)).astype('uint8')
+        tl = cv2.resize(tl, None, fx=4, fy=4)
+
+        cv2.imshow('a', im)
+        # cv2.imshow('', tl)
+        
         cv2.waitKey(0)
         cv2.destroyAllWindows()
         # corner = np.max(heatmap, axis=2)
