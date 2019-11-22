@@ -120,7 +120,7 @@ def getSizePolygon(pts):
     size = (max(side_left, side_right), max(side_top, side_bottom))
     return size
 
-def findMax3D(x):
+def findMax2d(x):
     """
     find index of max value in 2d array
     """
@@ -135,23 +135,26 @@ def findMax3D(x):
 def decodeDets(heatmap, offset, ratio=4):
     """
     decode detection to find corner in origin image
-    :param heatmap: bxhxwx4
-    :param offset: bxhxwx2
+    :param heatmap: hxwx4
+    :param offset: hxwx2
     :ratio: origin size / size of heatmap
     """
-    batch_size, m, n, n_pts = heatmap.shape
-    pts = np.zeros((batch_size, 4, 2)) # batch_size corners, 4x2 each
+    m, n, n_pts = heatmap.shape
+    pts = np.zeros((4, 2)) # batch_size corners, 4x2 each
     for i in range(n_pts):
-        heatmap_corner_i = heatmap[:, :, :, i]
-        tmp = heatmap_corner_i.reshape(batch_size, -1) # ravel heatmap
-        idx = (np.argmax(tmp, axis=1)).reshape(-1, 1)
+        heatmap_corner_i = heatmap[:, :, i]
+        tmp = heatmap_corner_i.ravel() # ravel heatmap
+        idx = np.argmax(tmp)
         u = idx // m 
         v = idx % m
-        position = np.concatenate((u, v), axis=1) # concat y and x
-        for batch_i in range(position.shape[0]):
-            position_i = position[batch_i, :]
-            offset_i = offset[batch_i, u[batch_i], v[batch_i], :]
-            pts[batch_i, i, :] = position_i*ratio + offset_i
+        # position_i = np.concatenate((u, v), axis=1) # concat y and x
+        position_i = np.array([u, v])
+        offset_i = offset[u, v, :]
+        pts[i, :] = position_i*ratio + offset_i
+        # for batch_i in range(position.shape[0]):
+        #     position_i = position[batch_i, :]
+        #     offset_i = offset[batch_i, u[batch_i], v[batch_i], :]
+        #     pts[batch_i, i, :] = position_i*ratio + offset_i
             # print(position_i, u[batch_i], v[batch_i], offset_i, pts[batch_i, i, :])
             # input()
     # print(pts.shape)

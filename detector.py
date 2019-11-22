@@ -2,6 +2,7 @@ import tensorflow as tf
 import cv2
 from PIL import Image
 import numpy as np
+from helper.utils import decodeDets
 
 model_path = './model/model.pb'
 
@@ -27,7 +28,7 @@ with detection_graph.as_default():
 im = cv2.imread('b.jpg')
 im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
 im = cv2.resize(im, (512, 512))
-im = np.expand_dims(im, axis=0)
+im_expand = np.expand_dims(im, axis=0)
 # im = np.zeros((1, 128, 128, 4))
 
 
@@ -52,7 +53,7 @@ with detection_graph.as_default():
         heatmap = detection_graph.get_tensor_by_name('EfficentCornerNet/heat/conv2d/BiasAdd:0')
         offset = detection_graph.get_tensor_by_name('EfficentCornerNet/offset/conv2d/BiasAdd:0')
 
-        heatmap, offset = sess.run([heatmap, offset], feed_dict={input_node: im})
+        heatmap, offset = sess.run([heatmap, offset], feed_dict={input_node: im_expand})
         heatmap = sigmoid(heatmap)
 
         print(heatmap.shape, offset.shape)
@@ -60,13 +61,19 @@ with detection_graph.as_default():
         heatmap = np.squeeze(heatmap, axis=0)
         offset = np.squeeze(offset, axis=0)
 
-        corner = np.max(heatmap, axis=2)
-        # corner = heatmap[:, :, 0]
-        corner = (corner*255/np.max(corner)).astype('uint8')
-
-        # cv2.imshow('a', cv2.applyColorMap(corner, cv2.COLORMAP_JET))
-        print(corner.shape)
-        cv2.imshow('a', corner)
+        corners = decodeDets(heatmap, offset)
+        print(corners.shape)
+        
+        for i in range(len(corners)):
+            pt = corners[i]
+            cv2.circle(im, tuple(pt), 5, (0, 0, 255), -1)
+        
+        cv2.imshow('', im)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+        # corner = np.max(heatmap, axis=2)
+        # # corner = heatmap[:, :, 0]
+        # corner = (corner*255/np.max(corner)).astype('uint8')
+
+
 
