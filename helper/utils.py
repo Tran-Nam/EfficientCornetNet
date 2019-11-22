@@ -109,6 +109,29 @@ def resize(im, pts, side=128): # resize image keep aspect ratio, padding
     pts = pts.astype('int')
 
     return big_image, pts
+
+def resize_image(im, side=512):
+    """
+    :param im: origin image
+    :param pts:  tl, tr, br, bl: 4*2
+    :param side: new image size
+    return im and boxes after resize
+    """
+    im_h, im_w = im.shape[:2]
+    ratio = side / max(im_h, im_w)
+    new_size = (int(im_h*ratio), int(im_w*ratio))
+    new_im = cv2.resize(im, None, fx=ratio, fy=ratio)
+    pts = pts.astype('float32')
+    pts[:, 0] *= ratio
+    pts[:, 1] *= ratio
+
+    big_image = np.ones([side, side, 3], dtype='float32')*np.mean(new_im)
+    padding_y = (side - new_im.shape[0])//2
+    padding_x = (side - new_im.shape[1])//2
+    big_image[padding_y: padding_y+new_im.shape[0],
+        padding_x: padding_x+new_im.shape[1]] = new_im
+    big_image = big_image.astype('uint8')
+    return big_image
     
 def getSizePolygon(pts):
     pts = orderPoints(pts)
