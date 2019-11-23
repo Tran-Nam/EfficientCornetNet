@@ -10,3 +10,5 @@ DECAY_RATE = 0.95
 
 INTERVAL_SAVE = 10
 MODEL_DIR = 'checkpoint'
+
+FROZEN_GRAPH = './model/model.pb'

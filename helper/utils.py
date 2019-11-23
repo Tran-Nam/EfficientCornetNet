@@ -121,9 +121,9 @@ def resize_image(im, side=512):
     ratio = side / max(im_h, im_w)
     new_size = (int(im_h*ratio), int(im_w*ratio))
     new_im = cv2.resize(im, None, fx=ratio, fy=ratio)
-    pts = pts.astype('float32')
-    pts[:, 0] *= ratio
-    pts[:, 1] *= ratio
+    # pts = pts.astype('float32')
+    # pts[:, 0] *= ratio
+    # pts[:, 1] *= ratio
 
     big_image = np.ones([side, side, 3], dtype='float32')*np.mean(new_im)
     padding_y = (side - new_im.shape[0])//2
@@ -131,7 +131,7 @@ def resize_image(im, side=512):
     big_image[padding_y: padding_y+new_im.shape[0],
         padding_x: padding_x+new_im.shape[1]] = new_im
     big_image = big_image.astype('uint8')
-    return big_image
+    return big_image, new_size
     
 def getSizePolygon(pts):
     pts = orderPoints(pts)
@@ -154,6 +154,8 @@ def findMax2d(x):
     j = idx % m 
     return i, j
 
+def sigmoid(x):
+    return 1/(1+np.exp(-x))
 
 def decodeDets(heatmap, offset, ratio=4):
     """
@@ -162,6 +164,7 @@ def decodeDets(heatmap, offset, ratio=4):
     :param offset: hxwx2
     :ratio: origin size / size of heatmap
     """
+    # heatmap = sigmoid(heatmap)
     m, n, n_pts = heatmap.shape
     pts = np.zeros((4, 2)) # batch_size corners, 4x2 each
     for i in range(n_pts):
