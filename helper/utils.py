@@ -150,8 +150,8 @@ def findMax2d(x):
     m, n = x.shape 
     x_ = x.ravel()
     idx = np.argmax(x_)
-    i = idx // m 
-    j = idx % m 
+    i = idx // n 
+    j = idx % n 
     return i, j
 
 def sigmoid(x):
